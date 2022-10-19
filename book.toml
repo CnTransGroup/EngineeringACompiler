@@ -8,7 +8,7 @@ title = "Engineering a Compiler"
 [output.html]
 mathjax-support = true
 no-section-label = true
-git-repository-url = "https://github.com/CnTransGroup/programming_language_pragmatics_4th"
+git-repository-url = "https://github.com/CnTransGroup/EngineeringACompiler"
 git-repository-icon = "fa-github"
 
 [output.html.fold]
