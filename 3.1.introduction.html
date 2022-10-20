@@ -139,7 +139,19 @@
 
                 <div id="content" class="content">
                     <main>
-                        
+                        <p>Parsing 是编译器前端的第二个阶段。 parser 使用 scanner tokenized 之后的程序，可以看做带有语法分类标注的单词流。 Parser 派生出程序的语法结构，将单词们匹配到源语言的语法模型中。如果 parser 判断输入程序是有效的，就会建立起程序的具体模型，中间表示（an intermediate representation），给编译器后续步骤使用。如果 parser 发现错误，报告错误以及错误位置给用户。</p>
+<p>parsing 和 scanning 是相似的。与 scanning 一样， parsing 也被广泛研究；现代 parser 就建立在这些理论之上。速度是至关重要的；我们将要研究的所有技术时间开销都与程序大小以及表现形式正相关。底层细节影响性能；parsing 和 scanning 会出现相同的实现上的权衡。本章的技术可以实现为 table-driven parser, direct-coded parser, hand-coded parser。不像 scanner 中手写那么常见，parser 更多的是工具生成。</p>
+<h2 id="conceptual-roadmap"><a class="header" href="#conceptual-roadmap">Conceptual Roadmap</a></h2>
+<p>parser 的主要任务是判断输入程序是否语言有效。在我们建立 parser 回答这个问题之前，我们既需要一种形式话机制来指定源语言的语法，也需要一种系统化的方法来确定形式化语言中的成员。通过约束源语言形式限制为一组 context-free 语言，我们可以确保高效算法来回答成员问题。Context-free grammar(CFGs) 是用于指定 context-free 语言的符号。</p>
+<p>很多算法已经被提出来回答 CFGs 的成员问题。本章讨论两种不同的方法：top-down parser 和 bottom-up parser。这两种类型的解析器主要是方法和实现的不同。但是两种类型都可以处理很大一类语法，基本包括现代语言的大多数语言结构。同样重要的是，工具广泛用于辅助编译器开发者构建 top-down parser 和 bottom-up parser。本章探讨了用于自动化 parser 构造的技术和方法。</p>
+<h2 id="overview"><a class="header" href="#overview">Overview</a></h2>
+<p>编译器的 parser 主要是要负责识别语法--也就是说，用于判断正在编译的程序是否编程语言语法模型中的有效语句。这个模型描述为形式话语法 G；如果单词 s 的字符转在 G 中，我们说 G derive s。对于单词流和 grammar G，parser 试图建立结构证明 s 可以被 G derived 的过程称为 parsing。</p>
+<p>Parsing 算法主要分成两大类。Top-down parsers 试图预测下一个单词将输入流与语法匹配。对于一类有限的语法，这样预测准确且高效。3.3 小节详细探讨了 top-down parser 的工作和用于创建它的技术。同时探讨了 recursive-descent 和 LL(1) parsers 的结构。Bottom-up parser 是从底层细节--单词的真实序列--开始工作，积累上下文知道 derivation 非常明显为止。同样的，存在一类语法，可以生成高效的 bottom-up parser。3.4 小节探讨了一类特殊的 bottom-up parser，table-derive LR(1) parser，以及生成这种高效 parser 技术。最后的小节探讨了一系列 parser 构建中实际会出现的问题。</p>
+<h2 id="a-few-words-about-time"><a class="header" href="#a-few-words-about-time">A Few Words About Time</a></h2>
+<p>设计，构建和使用 parser 跨域了整个编译过程。设计期间，编译器开发者选择一种解析方法和工具集。然后创建工具识别的源语言的 CFG。</p>
+<p>在构建期间，编译器开发者通过工具构建可执行的 parser 。在手写的 parser 中，代码直接被编译。在生成的 parser 中，调用 parser 生成器的过程从 CFG 和标注构建 parser；然后编译代码成可执行文件。</p>
+<p>最后，在编译期间，parser 分析源代码的 token。将单词流映射到 CFG 或者识别出不匹配。如果输入程序是正确的，生成 IR 给接下来的编译过程使用。如果输入包含错误，parser 报告给开发者。</p>
+
                     </main>
 
                     <nav class="nav-wrapper" aria-label="Page navigation">
