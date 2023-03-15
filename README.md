@@ -12,7 +12,7 @@ The Elements of Computer Systems
 
 
 - Engineer a Compiler： 超级棒，强烈推荐！尤其是IR、代码生成、优化这方面
-- Static Single Assignment Book：如果用了SSA的话，这就是 "The SSA book"，感觉当时同一节要读好几遍才能明白
+- [Static Single Assignment Book](https://github.com/pfalcon/ssabook)
 - Compilers： 又名龙书，感觉 top-down parsing 也就是讲 recursive descent parser 的那一章感觉还不错，但其他的部分感觉一般，不是很好懂
 - Modern Compiler Implementation in Java/C/ML：又名虎书，
 - Parsing Techniques： 硬核 parser，我没看过，但大家都在推荐就是了
