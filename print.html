@@ -144,6 +144,9 @@
 <h2 id="typora-copy-images-to-assetsfilename"><a class="header" href="#typora-copy-images-to-assetsfilename">typora-copy-images-to: assets/${filename}</a></h2>
 <p>parser 的任务是判断 scanner 分词之后的输入程序是否编程语言的有效语句。为了做到这一点， parser 尝试用描述编程语言语法对输入程序建立 derivation。</p>
 <p>本章介绍 context-free grammars 来描述编程语言语法。发展出了 top-down 和 bottom-up 解析技术。它们描述了自动构建两种类型 parser 的方法。最后，讨论 parser 构造中出现的一些实际问题。</p>
+<h2 id="record"><a class="header" href="#record">record</a></h2>
+<p>SLR -&gt; simple LR</p>
+<p>LALR -&gt; lookahead LR</p>
 <div style="break-before: page; page-break-before: always;"></div><p>Parsing 是编译器前端的第二个阶段。 parser 使用 scanner tokenized 之后的程序，可以看做带有句法分类标注的单词流。 Parser 派生出程序的语法结构，将单词们匹配到源语言的语法模型中。如果 parser 判断输入程序是有效的，就会建立起程序的具体模型，中间表示（an intermediate representation），给编译器后续步骤使用。如果 parser 发现错误，报告错误以及错误位置给用户。</p>
 <p>parsing 和 scanning 是相似的。与 scanning 一样， parsing 也被广泛研究；现代 parser 就建立在这些理论之上。速度是至关重要的；我们将要研究的所有技术时间开销都与程序大小以及表现形式正相关。底层细节影响性能；parsing 和 scanning 一样会有实现上的权衡。本章的技术可以实现为 table-driven parser, direct-coded parser, hand-coded parser。不像 scanner 中手写那么常见，parser 更多的是工具生成。</p>
 <h2 id="conceptual-roadmap"><a class="header" href="#conceptual-roadmap">Conceptual Roadmap</a></h2>
@@ -177,17 +180,78 @@
 <p>为了描述编程语言语法，我们需要比 RE 更强大的符号记法。传统的方案是使用 CFG。幸运的是，CFG 很大一部分子类可以推导出高效识别器。</p>
 <blockquote>
 <p>BACKUS-NAUR Form</p>
-<p>计算机科学表示 context-free grammar 的传统记法是 <em>Backus-Naur form</em>,或者 <em>BNF</em>. BNF 中</p>
+<p>计算机科学表示 context-free grammar 的传统记法是 <em>Backus-Naur form</em>,或者 <em>BNF</em>. BNF 中, nonterminal symbols 使用尖括号括起来,&lt;SheepNoise&gt; Terminal symbols 使用下划线表示，<u>baa</u> . <code>::=</code>  表示 derive，<code>|</code> 表示也 derive</p>
+<p>&lt;SheepNoise&gt; ::= <u>baa</u> &lt;SheepNoise&gt;
+​								| <u>baa</u></p>
+<p>BNF 诞生于 1950末，1960初。尖括号，下划线，双冒号等于，竖线来资源当时编译器编写可选的有限的符号。本书中，我们使用 BNF 更新的印刷形式。斜体表示 Nonterminal symbol，印刷黑体表示 Terminal symbols，-&gt; 表示 derive</p>
 </blockquote>
-<p>CFG，G 是规则集，或者 productions，描述如何组成句子。从 G 中派生出的句子的集合称为 defined by G，或者 L(G)。可以通过所有可能 CFG 定义的语言集被叫做 Context-free 语言集合。例子可能有助于理解。考虑下面的 grammar</p>
+<p>CFG，G 是规则集，或者 productions，描述如何组成句子。<strong>从 G 中派生出的句子的集合称为 defined by G，或者 L(G)</strong>。可以通过所有可能 CFG 定义的语言集被叫做 Context-free 语言集合。例子可能有助于理解。考虑下面的 grammar</p>
 <pre><code>SheepNoise -&gt; baa SheepNoise
 						| baa
 </code></pre>
 <p>第一个规则，或者 production，读到 SheepNoise 可以派生出 baa 跟随着另一个 SheepNoise。这里 SheepNoise 是一个语法变量，表示可以从 grammar 中派生的字符床集合。我们称这种语法变量为 nonterminal symbol。语言中比如 baa，是 terminal symbol。第二个规则是 SheepNoise 可以派生出 baa。</p>
-<p>为了理解 SN grammar 和 L(SN) 的关系，我们需要制定如何使用 SN 中的规则派生 L(SN) 中的语句。首先我们需要确定 SN 的 start symbol。它表征 L(SN) 中的字符串集合。因此，它不能是语言中的单词。相反，必须是引入的 nonterminal symbol 之一，以增加语言的结构和抽象。因为 SN 只有一个 nonterminal symbol，SheepNoise 是 start symbol。</p>
+<p>为了理解 SN grammar 和 L(SN) 的关系，我们需要制定如何使用 SN【译者注：就是上面的 SheepNoise】 中的规则派生 L(SN) 中的语句。首先我们需要确定 SN 的 start symbol。它表征 L(SN) 中的字符串集合。因此，它不能是语言中的单词。相反，必须是引入的 nonterminal symbol 之一，以增加语言的结构和抽象。因为 SN 只有一个 nonterminal symbol，SheepNoise 是 start symbol。</p>
+<blockquote>
+<p>Context-free grammars</p>
+<p>形式上，context-free grammar <em><strong>G</strong></em> 包括四部分 &lt;T,NT,S,P&gt;</p>
+<p>T: L(G) 语言中 termial symbols 集合。Terminal symbols 与 scanner 返回的句法分类关联</p>
+<p>NT: nonterminal symbols 集合。句法变量，由 productions of G 定义来提供抽象和结构</p>
+<p>S: nonterminal symbol 作为 start symbol 或者 global symbol。S 表示 L(G) 中的句子集合</p>
+<p>P: G 中的 productions 集合或者重写规则。P 中的每条规则有这样的格式 \(NT \rightarrow (T \cup NT)^+\) ；就是通过一个或者多个 grammar 字符串替代单个 nonterminal</p>
+<p>T 和 NT 可以直接从 productions 派生。start symbol 可能不清楚，比如在 SheepNoise grammar中，也可能不明显，比如下面的</p>
+<pre><code class="language-bash">Paren -&gt; ( Bracket )               Bracket -&gt; [ Paren ]
+				| ( )                                 | [ ]
+</code></pre>
+<p>这个例子中，start symbol 选择决定了哪个是外边的括号。</p>
+<p>有些工具要求 S 不能出现在 productions 后边，方便确定 S</p>
+</blockquote>
 <p>为了派生出语句，我们从包含 start symbol 原型字符串开始。然后重复下面的处理：（1）选择一个 nonterminal symbol \( \alpha \) （2） 选择 grammar 规则，\( \alpha \rightarrow \beta \) （3）使用 \( \beta \) 代替 \( \alpha \)。当原型字符串只包含 terminal symbol，派生停止。原型字符串就已经被重写为了语言中的语句。</p>
-<p>派生中的每个点，原型字符串都包含了 terminal 和 nonterminal symbol 的序列。当这样的字符串作为有效派生的一个步骤出现时，是 sentential form。任何 sentential form 可以从 start symbol 在有限步骤内转换成。同样的，我们可以从任何 sentential form 在有限步骤转换成有效句子。</p>
-<div style="break-before: page; page-break-before: always;"></div><div style="break-before: page; page-break-before: always;"></div><div style="break-before: page; page-break-before: always;"></div><div style="break-before: page; page-break-before: always;"></div><div style="break-before: page; page-break-before: always;"></div><p>编译器中的核心数据结构就是被编译程序的表示。编译器中多数的读，操作的是 intermediate representation 或者 IR。因此，关于表示什么和如何表示的决策扮演了编译开销和效率的核心角色。本章描述了编译器使用的 IR 的调查，包括 graphical IRs, linea IRs, 以及这两种形式的结合。以及编译器维护的辅助数据结构，以 symbol tables 为代表。</p>
+<blockquote>
+<p>Derivation</p>
+<p>重写步骤的序列：开始于 grammar 的 start symbol ，变成语言中的句子终止</p>
+</blockquote>
+<blockquote>
+<p>Sentential form</p>
+<p>symbols 的字符串，一次有效 derivation 中的一步</p>
+</blockquote>
+<p>派生中的每个点，原型字符串都包含了 terminal 和 nonterminal symbol 的序列。当这样的字符串作为有效派生的一个步骤出现时，是 sentential form。任何 sentential form 可以从 start symbol 在有限步骤内转换成。同样的，我们可以从任何 sentential form 在有限步骤转换成有效句子。因此如果我们从 SheepNoise 开始，使用两条规则覆写，每一步都是 sentential form。当我们达到字符串只包含 terminal symbols，这个字符串就是 L(SN) 中的句子。</p>
+<p>为了 derive SN 的句子，我们从包含 SheepNoise 的字符串开始，如果我们使用规则 2 ，变成 baa，不用继续覆写。所以 baa 就是 L(SN) 中有效的句子；或者使用规则 1，baa SheepNoise ，这个字符串还包含 nonterminal，继续使用规则2 ，baa baa ，也是 L(SN) 中有效的句子。如下图所示</p>
+<p><img src="assets/3.2.expressing_syntax/image-20230317163506871.png" alt="image-20230317163506871" /></p>
+<p>我们使用 \( \rightarrow^+ \) 表示一步或者多步 derive。因此  \( SheepNoise \rightarrow^+ baa \) 以及  \( SheepNoise \rightarrow^+ baa baa \) </p>
+<p>规则 1 加长句子，规则 2 消除 nonterminal，SN 的所有 derivation 都是0或者多次使用规则1，然后使用规则2.</p>
+<p>注意到 L(SN) 可以通过 \( (baa)^+\) 这个 RE 表示，所以 L(SN) 是 regular 语言。</p>
+<h2 id="323-more-complex-examples"><a class="header" href="#323-more-complex-examples">3.2.3 More Complex examples</a></h2>
+<p>omit</p>
+<h2 id="324-encoding-meaning-into-structure"><a class="header" href="#324-encoding-meaning-into-structure">3.2.4 Encoding meaning into structure</a></h2>
+<p>上一节的 if-then-else 歧义指出 grammar 结构和意义之间的关系。然而，不止歧义性属于意义和结构互相影响。看下面的例子</p>
+<p><img src="assets/3.2.expressing_syntax/image-20230317165229111.png" alt="image-20230317165229111" /></p>
+<p><img src="assets/3.2.expressing_syntax/image-20230317164858246.png" alt="image-20230317164858246" /></p>
+<p>一个自然的计算表达式的方法就是遍历后续树。首先计算 a + b 然后乘 c 。这个方法是违反了代数规则。因为 parse 表达式最终的目标是产生实现的代码，这个表达式 grammar 应该有这种特性，“自然”遍历树产生正确结果。</p>
+<p>真正的问题在于上面的 grammar 将所以代数操作一视同仁，忽略了优先级。最右 derivation 和最左 derivation 生成了不同的 parse tree。所以语法是有歧义的。这个简单的表达式 grammar 需要三层优先级：() 最高 ，乘和除次之，加减最后。然后我们将操作符分组来区分层级，使用 nonterminal 来区分 grammar 不同的部分。</p>
+<p><img src="assets/3.2.expressing_syntax/image-20230317165721557.png" alt="image-20230317165721557" /></p>
+<p><img src="assets/3.2.expressing_syntax/image-20230317165825453.png" alt="image-20230317165825453" /></p>
+<p>现在，语法没有了歧义。这个改变影响了 derivation 的长度和解析树的大小。</p>
+<h2 id="325-discovering-a-derivation-for-an-input-string"><a class="header" href="#325-discovering-a-derivation-for-an-input-string">3.2.5 Discovering a derivation for an input string</a></h2>
+<p>我们已经看到又了 G 如何生成 L(G) 。不过，parser 是接受输入的字符串，表示是 L(G) ，发现 derivation。从给定输入序列找到 derivation 称为 parsing。</p>
+<p>parser 看到的是 scanner 处理过的流，因此 parser 看到的 \(a + b \times c\) 是 \(&lt;name, a&gt; + &lt;name, b&gt; \times &lt;name, c&gt;\) 。作为输出，parser 应该输出 derivation 或者错误信息。</p>
+<p>将 parser 视为构建 parse tree 的过程很有帮助。parse tree 的根已知，就是 start symbol，叶子结点就是 scanner 给出的 token 们，最困难的部分就是如何连接 root 和 leaf。两种方法：</p>
+<ol>
+<li>top-down parsers： 从根开始，生长树到叶子结点。每一步，top-down parser 根据 nonterminal 找到一个节点，然后扩展成子树表示 production 右侧来覆写 nonterminal</li>
+<li>Bottom-top parsers 从叶子开始，生长树到根。每一步，bottom-top parser 找到匹配 production 右侧的上层的子串，然后建造规则的左侧，连接到树上。</li>
+</ol>
+<div style="break-before: page; page-break-before: always;"></div><div style="break-before: page; page-break-before: always;"></div><div style="break-before: page; page-break-before: always;"></div><div style="break-before: page; page-break-before: always;"></div><hr />
+<h2 id="typora-copy-images-to-assetsfilename-2"><a class="header" href="#typora-copy-images-to-assetsfilename-2">typora-copy-images-to: assets/${filename}</a></h2>
+<h2 id="362-reducing-the-size-of-lr1-tables"><a class="header" href="#362-reducing-the-size-of-lr1-tables">3.6.2 Reducing the size of LR(1) tables</a></h2>
+<p>不幸的是，LR(1) table 即使是很少的语法也会很大。所以存在很多技术来降低 LR(1) 的表大小。本节描述这些方法</p>
+<h3 id="shrinking-the-grammar"><a class="header" href="#shrinking-the-grammar">Shrinking the grammar</a></h3>
+<p>编译器开发可以重新编码 grammar 来减少 productions.</p>
+<h3 id="using-other-construction-algorithms"><a class="header" href="#using-other-construction-algorithms">Using other construction algorithms</a></h3>
+<p>构造 LR 类型的 parser 存在几种其他算法。包括 SLR(1) , LALR(1)。都可以产出比 canonical LR(1) 算法更小的 table</p>
+<p>SLR(1) [simple LR(1)] 算法接受比 canonical LR(1) 算法更少的 grammars。受限可以使得 table-filling 算法在 shift entries 和 reduce entries 使用 FOLLOW sets 区分出来，消除了 lookahead symbols 的需要。所以只需要更少的状态，table 就更小。这种技术实际应用在很多实际应用。</p>
+<p>LALR(1) [lookahead LR(1)] 算法基于这样一种观察，表示状态的核心项很关键，而其他项只是用来计算 closure。LALR(1) table 结构使用核心项计算 canonical 集合，在到达固定位置计算其 closure。产生的权威集合类似于 SLR 的大小，不同的细节在于，表更小。</p>
+<p>本章开始介绍的 canonical LR(1) 算法是最通用的表生成算法。产生最大的表，同时可以接受最多的 grammars。使用合适的表缩小技术，LR(1) 的表可以通过更多的限制来缩小。</p>
+<p>可以接受的语法排序位 LR(1) &gt; LALR(1) &gt; SLR(1)。但是违反直觉的是，任何有 LR(1) grammar 的语言也同时有 SLR(1) 和 LALR(1) 。这些更具限制的构造算法必须在 shift actions 和 reduce actions 区分。</p>
+<div style="break-before: page; page-break-before: always;"></div><p>编译器中的核心数据结构就是被编译程序的表示。编译器中多数的读，操作的是 intermediate representation 或者 IR。因此，关于表示什么和如何表示的决策扮演了编译开销和效率的核心角色。本章描述了编译器使用的 IR 的调查，包括 graphical IRs, linea IRs, 以及这两种形式的结合。以及编译器维护的辅助数据结构，以 symbol tables 为代表。</p>
 <div style="break-before: page; page-break-before: always;"></div><p>编译器被组织成了多次遍历。在编译器获得转换代码知识的同时，必须记录下这些知识然后传递给后面的遍历。因此编译器需要表征所有从程序中获得的知识。我们称这些数据结构的集合为 intermediate representation(IR)。编译可能有一种 IR，也可能有一系列 IRs 用来将源码转换为目标语言。编译器依赖 IR 表征程序，不会返回参考源码的文本。IR 的属性对编译器有直接影响，但是不对代码有影响。</p>
 <p>使用 IR 让编译器可以多次遍历代码。编译器如果可以在一次遍历中获取信息然后在下一次遍历中使用就可以为输入程序生成更高效率的代码。但是这种能力需要：IR 必须可以表征获取的信息。因此编译器必须建立一些辅助数据结构表示获取的信息。这些结构也是 IR 的一部分。</p>
 <p>编译器几乎每个阶段都以 IR 形式操作程序。因此 IR 的属性，比如读写特定字段的方法来得到特定事实，以及导航整个程序，对于编写单独的遍历是否容易，以及一个阶段的执行是否高效有着直接的影响。</p>
@@ -203,7 +267,7 @@
 <h2 id="a-few-words-about-time-1"><a class="header" href="#a-few-words-about-time-1">A few words about time</a></h2>
 <p>IR 完全是编译期结构。因此编译器开发者完全控制 IR 的设计，在设计期。有些辅助信息比如 symbol tables ，storage map 也会被后续的工具使用，比如 debugger。但是不影响 IR 的设计与实现，因为这些信息必须转换为后续工具需要的格式</p>
 <div style="break-before: page; page-break-before: always;"></div><hr />
-<h2 id="typora-copy-images-to-assetsfilename-2"><a class="header" href="#typora-copy-images-to-assetsfilename-2">typora-copy-images-to: assets/${filename}</a></h2>
+<h2 id="typora-copy-images-to-assetsfilename-3"><a class="header" href="#typora-copy-images-to-assetsfilename-3">typora-copy-images-to: assets/${filename}</a></h2>
 <p>编译器使用多种 IR。我们关于 IR 的讨论为三个方面：组织结构，抽象层次，使用模式。通常来说，这三个属性是独立的；组织/抽象/命名在编译器中组合使用。</p>
 <h2 id="structural-organization"><a class="header" href="#structural-organization">Structural Organization</a></h2>
 <p>广义来说，IR 分为三类：</p>
