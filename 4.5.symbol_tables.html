@@ -139,7 +139,16 @@
 
                 <div id="content" class="content">
                     <main>
-                        
+                        <p>Symbol table: a collection of one or more data structures that hold information about names and values</p>
+<p>编译器在 parsing 过程中会获得很多各种性质的 item，比如 named values （variables，arrays，records，structures，strings，objects）; class definition; constants; labels in the code; compiler-generated temporary values</p>
+<p>不同 item 的信息不同，比如简单的 scalar variable，编译器需要数据类型，尺寸，存储位置。对于函数，需要每个参数的类型，尺寸，返回值的类型，尺寸，以及汇编找到函数的 label。</p>
+<p>因此编译器会存储这些描述信息，便于通过名字来获取相关信息。</p>
+<p>典型方式是编译器会维持表的集合，symbol tables。通常 symbol table 有两个主要组件：文本名称到存储位置的映射以及存储位置到描述信息的映射。</p>
+<p>编译器会使用多张表来存储不同类型信息。</p>
+<h2 id="451-name-resolution"><a class="header" href="#451-name-resolution">4.5.1 Name resolution</a></h2>
+<p>symbol table 的主要作用就是 resolve names。</p>
+<p>略，见原文</p>
+
                     </main>
 
                     <nav class="nav-wrapper" aria-label="Page navigation">

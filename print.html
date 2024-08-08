@@ -394,7 +394,35 @@
     end
 </code></pre>
 <p>难题部分 略</p>
-<div style="break-before: page; page-break-before: always;"></div><div style="break-before: page; page-break-before: always;"></div><div style="break-before: page; page-break-before: always;"></div><div style="break-before: page; page-break-before: always;"></div><div style="break-before: page; page-break-before: always;"></div><div style="break-before: page; page-break-before: always;"></div><p>根本上说，编译器就是读入一个程序，建立对其意义的表征，分析，提升代码形式，然后将其转换为目标机器的语言。转换，分析，优化，代码生成要求对输入程序的高度理解。syntax-driven tanslation 的目的就是开始收集编译后续流程需要的知识。</p>
+<div style="break-before: page; page-break-before: always;"></div><p>Symbol table: a collection of one or more data structures that hold information about names and values</p>
+<p>编译器在 parsing 过程中会获得很多各种性质的 item，比如 named values （variables，arrays，records，structures，strings，objects）; class definition; constants; labels in the code; compiler-generated temporary values</p>
+<p>不同 item 的信息不同，比如简单的 scalar variable，编译器需要数据类型，尺寸，存储位置。对于函数，需要每个参数的类型，尺寸，返回值的类型，尺寸，以及汇编找到函数的 label。</p>
+<p>因此编译器会存储这些描述信息，便于通过名字来获取相关信息。</p>
+<p>典型方式是编译器会维持表的集合，symbol tables。通常 symbol table 有两个主要组件：文本名称到存储位置的映射以及存储位置到描述信息的映射。</p>
+<p>编译器会使用多张表来存储不同类型信息。</p>
+<h2 id="451-name-resolution"><a class="header" href="#451-name-resolution">4.5.1 Name resolution</a></h2>
+<p>symbol table 的主要作用就是 resolve names。</p>
+<p>略，见原文</p>
+<div style="break-before: page; page-break-before: always;"></div><p>大多关于 name space 的讨论集中于源码的 name space: lexical scopes and inheritance rules. 同等重要的是，从编译代码的角度，编译创建 IR 的 name space .</p>
+<p>IR 的 name space 与转换中的 memory model 相关。编译可以假设所有值都在内存，除非要在计算中被用到。也可以假设如果可能的话，所有值都在寄存器。</p>
+<p>本节主要集中在 name space 设计，也会引入 SSA</p>
+<h2 id="461-name-spaces-in-the-ir"><a class="header" href="#461-name-spaces-in-the-ir">4.6.1 Name Spaces in the IR</a></h2>
+<h3 id="implicit-vs-explicit-names"><a class="header" href="#implicit-vs-explicit-names">Implicit vs Explicit Names</a></h3>
+<p>类树 IR 对于某些值使用隐式名字，比如下图 AST</p>
+<p><img src="assets/4.6.name_spaces/image-20240808193953772.png" alt="image-20240808193953772" /></p>
+<p>就没有 <code>2 x b</code> <code>a - 2 x b</code> 的名字</p>
+<p>相反，三地址码使用显式名字，给了编译器控制名字的能力。</p>
+<p><img src="assets/4.6.name_spaces/image-20240808194128127.png" alt="image-20240808194128127" /></p>
+<p>这是使用唯一名字和重用名字的例子。</p>
+<h3 id="variables-vs-values"><a class="header" href="#variables-vs-values">Variables vs Values</a></h3>
+<p><code>a &lt;- 2 * b + cos(c / 3)</code> 表达式中，<code>a,b,c</code> 都可以在后续的 stmt 中使用，但是 <code>2 * b</code> 这种就不可以。</p>
+<p>在 IR 形式的代码中，编译器开发者必须决定哪些值可以通过唯一显示的名字访问。就像上面的例子，可以尽可能多的使用名字，也可以名字重用，这个决策会很大程度上影响后续的优化。</p>
+<p>给每个子表达式都使用唯一名字的诱惑是提供最大可能机会优化代码。然而不是所有子表达式都有用。如果只在一个 stmt 中使用，明显没有显示名字的必要。</p>
+<h2 id="462-static-single-assignment-form"><a class="header" href="#462-static-single-assignment-form">4.6.2 Static Single-Assignment Form</a></h2>
+<p>SSA 是一种 naming discipline 的 IR ，很多现代编译器使用它来编码控制流和数据流。SSA 形式中，每个名字对应一个 definition。</p>
+<p>fin-function 用来表示 merge 点</p>
+<p><img src="assets/4.6.name_spaces/image-20240808195052983.png" alt="image-20240808195052983" /></p>
+<div style="break-before: page; page-break-before: always;"></div><div style="break-before: page; page-break-before: always;"></div><div style="break-before: page; page-break-before: always;"></div><div style="break-before: page; page-break-before: always;"></div><p>根本上说，编译器就是读入一个程序，建立对其意义的表征，分析，提升代码形式，然后将其转换为目标机器的语言。转换，分析，优化，代码生成要求对输入程序的高度理解。syntax-driven tanslation 的目的就是开始收集编译后续流程需要的知识。</p>
 <p>当编译器 parse 输入程序，建立的代码某种 IR。标注发现的一些情况，比如类型，值的尺寸，以及可以得到的事实，比如每个值存在哪里。编译器使用两种机制来建立 IR 以及辅助信息：</p>
 <ol>
 <li>syntax-driven translation： 一种嵌入到 parser 中的形式计算，由 parser 行为驱动</li>
