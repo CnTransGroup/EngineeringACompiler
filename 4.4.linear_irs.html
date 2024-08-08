@@ -139,7 +139,55 @@
 
                 <div id="content" class="content">
                     <main>
-                        
+                        <p>线性 IR 表征程序的一系列操作。是图形 IR 的替代品之一。assembly 语言程序就是某种形式的线性 IR，包含了排好序的指令序列。指令可以包含多个操作，这些操作时并行的。</p>
+<h2 id="441-one-address-code"><a class="header" href="#441-one-address-code">4.4.1 One-Address Code</a></h2>
+<p>略</p>
+<p>使用模式：作为 definitive IR，JAVA 使用的 bytecode 基于栈的虚拟机。</p>
+<h2 id="442-three-address-code"><a class="header" href="#442-three-address-code">4.4.2 Three-Address code</a></h2>
+<p>三地址码有吸引力原因</p>
+<ol>
+<li>紧凑（compact）大多数操作包含 4 个 item，op code，三个名字。opcode 需要一或两个字节，名字典型的使用整数表示。</li>
+<li>操作数名字的分离可以让编译器自由控制名字和值的重用，三地址码没有析构操作</li>
+<li>很多现代处理器实现了三地址码操作</li>
+</ol>
+<p><em>抽象层级</em>：三地址码可以包含多种操作以及多种抽象层级。比如可以包含的操作有 jump, branch, load, store，甚至更复杂的操作，比如 max。表征这种复杂操作简化了分析和优化。</p>
+<p><strong>使用模式</strong>：编译器使用三地址码作为 definitive IR。三地址码的显式名字空间和 load-store memory 模型，非常适合寄存器到寄存器，load-store 机器的优化。</p>
+<h2 id="443-representing-linear-codes"><a class="header" href="#443-representing-linear-codes">4.4.3 Representing Linear Codes</a></h2>
+<p>前端链表是更好的选择，后端比如 instruction scheduler 需要大量重排操作的时候，array 是更好的选择。</p>
+<h2 id="444-building-the-cfg-from-linear-code"><a class="header" href="#444-building-the-cfg-from-linear-code">4.4.4 Building the CFG from Linear Code</a></h2>
+<p>对于 Linear Code 有算法来做</p>
+<ol>
+<li>Finding leaders</li>
+<li>Finding last and adding edges</li>
+</ol>
+<pre><code class="language-cpp">FindLeaders()
+  next &lt;- 1
+  Leader[next++] &lt;- 1
+  create a CFG node for l[1]
+  for i &lt;- 2 to n do
+    if op[i] has a label l[i] then
+      Leader[next++] &lt;- i
+      create a CFG node for l[i]
+  MaxStmt &lt;- next - 1
+</code></pre>
+<pre><code class="language-cpp">BuildGraph()
+  for i &lt;- 1 to MaxStmt do
+    j &lt;- Leader[i] + 1
+    while (j &lt;= n and op[j] not belong to Leader) do
+      j &lt;- j + 1
+    j &lt;- j - 1
+    Last[i] &lt;- j
+    if op[j] is &quot;cbr r[k] -&gt; l[1], l[2]&quot; then
+      add edge from j to node for l[1]
+      add edge from j to node for l[2]
+    else if op[j] is &quot;jumpI -&gt; l[1]&quot; then
+      add edge from j to node for l[1]
+    else if op[j] is &quot;jump -&gt; r[1]&quot; then
+      add edges from j to all labeled statements
+    end
+</code></pre>
+<p>难题部分 略</p>
+
                     </main>
 
                     <nav class="nav-wrapper" aria-label="Page navigation">

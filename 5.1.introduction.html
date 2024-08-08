@@ -139,7 +139,13 @@
 
                 <div id="content" class="content">
                     <main>
-                        
+                        <p>根本上说，编译器就是读入一个程序，建立对其意义的表征，分析，提升代码形式，然后将其转换为目标机器的语言。转换，分析，优化，代码生成要求对输入程序的高度理解。syntax-driven tanslation 的目的就是开始收集编译后续流程需要的知识。</p>
+<p>当编译器 parse 输入程序，建立的代码某种 IR。标注发现的一些情况，比如类型，值的尺寸，以及可以得到的事实，比如每个值存在哪里。编译器使用两种机制来建立 IR 以及辅助信息：</p>
+<ol>
+<li>syntax-driven translation： 一种嵌入到 parser 中的形式计算，由 parser 行为驱动</li>
+<li>随后对 IR 遍历进行更复杂的运算</li>
+</ol>
+
                     </main>
 
                     <nav class="nav-wrapper" aria-label="Page navigation">
